@@ -87,7 +87,7 @@ Computing "what times are free on Tuesday?" sounds trivial until real business r
 
 The engine computes availability in real time from these rules, and exposes helpers like *nearest-slot suggestion* — when a customer asks for a taken time, the AI counter-offers the closest valid alternative instead of a dead "no".
 
-A simplified, didactic version of the core algorithm is in [`examples/scheduling-engine-concept.js`](examples/scheduling-engine-concept.js).
+A simplified, didactic version of the core algorithm is in [`examples/scheduling-engine-concept.js`](examples/scheduling-engine-concept.js), with the rule-exceptions pinned down by a zero-dependency test suite in [`examples/scheduling-engine-concept.test.js`](examples/scheduling-engine-concept.test.js) (`npm test`).
 
 ### 3. One AI brain, many surfaces
 
@@ -115,7 +115,7 @@ A persistent WhatsApp connection that survives restarts, re-authentications and 
 ## What I'd do differently
 
 - Introduce TypeScript earlier — the largest modules would have caught whole classes of bugs at edit time
-- Automated test coverage for the scheduling engine from day one (its rule-exceptions are exactly where regressions hide)
+- Automated test coverage for the scheduling engine from day one (its rule-exceptions are exactly where regressions hide — the concept algorithm in this repo is now covered, but the production engine earned its tests late)
 - Structured logging from the start, instead of retrofitting it when debugging production conversations
 
 ## About me

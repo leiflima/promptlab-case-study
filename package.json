@@ -1,0 +1,10 @@
+{
+  "name": "promptlab-case-study",
+  "version": "1.0.0",
+  "description": "Engineering case study for PromptLab — architecture notes and didactic code samples.",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "test": "node --test"
+  }
+}

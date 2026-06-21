@@ -112,16 +112,35 @@ function findNearestSlot(requestedHHMM, config, agenda) {
   };
 }
 
+// --- Exports --------------------------------------------------------------
+// Exported so the rule-exceptions can be covered by automated tests
+// (see scheduling-engine-concept.test.js).
+
+module.exports = {
+  SLOT_STEP,
+  config,
+  agenda,
+  toMin,
+  toHHMM,
+  isSlotAvailable,
+  getAvailableSlots,
+  findNearestSlot,
+};
+
 // --- Demo -----------------------------------------------------------------
+// Only runs when the file is executed directly (`node scheduling-engine-concept.js`),
+// not when it is imported by the test suite.
 
-console.log('Available slots:', getAvailableSlots(config, agenda).join(', '));
+if (require.main === module) {
+  console.log('Available slots:', getAvailableSlots(config, agenda).join(', '));
 
-// Buffer behaviour: 10:30–10:45 is buffered (after a booking)…
-console.log('\n10:40 valid?', isSlotAvailable(toMin('10:40'), config, agenda)); // false — inside buffer
-console.log('10:50 valid?', isSlotAvailable(toMin('10:50'), config, agenda));   // true — buffer cleared, ends flush against the 11:20 block
+  // Buffer behaviour: 10:30–10:45 is buffered (after a booking)…
+  console.log('\n10:40 valid?', isSlotAvailable(toMin('10:40'), config, agenda)); // false — inside buffer
+  console.log('10:50 valid?', isSlotAvailable(toMin('10:50'), config, agenda));   // true — buffer cleared, ends flush against the 11:20 block
 
-// …but a service may start exactly when a blocked period ends (no buffer):
-console.log('11:50 valid?', isSlotAvailable(toMin('11:50'), config, agenda));   // true
+  // …but a service may start exactly when a blocked period ends (no buffer):
+  console.log('11:50 valid?', isSlotAvailable(toMin('11:50'), config, agenda));   // true
 
-// Nearest-slot suggestion for a taken time:
-console.log('\nCustomer asks for 14:00 →', findNearestSlot('14:00', config, agenda));
+  // Nearest-slot suggestion for a taken time:
+  console.log('\nCustomer asks for 14:00 →', findNearestSlot('14:00', config, agenda));
+}
