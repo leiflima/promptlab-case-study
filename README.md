@@ -102,12 +102,12 @@ Computing *"what times are free on Tuesday?"* sounds trivial until real business
 
 - Working hours differ per weekday, per business and per team member — resolved through a **2-level fallback**: a member's own hours, falling back to the establishment's hours when they have none. (The business owner isn't a separate level — they're simply the default first agenda, on establishment hours.)
 - Service durations vary per service, on a fixed time grid; the **last bookable start time depends on the duration of the specific service** being requested.
-- Buffer between appointments, when enabled, applies **only between confirmed bookings** — never against blocked time, the lunch break, or the opening/closing edges (a service may start or end flush against any of those). It's a configurable knob; production currently runs back-to-back on a 30-minute grid.
+- Bookings sit **back-to-back** on the grid — there is no buffer between them. Blocked time, the lunch break and per-day exceptions carve out the day, and a service may start or end **flush** against any of those edges (and against the opening/closing time).
 - In team mode a slot is "free" if *any* qualified member is free, and the booking **auto-assigns to the least-loaded** one — by that day's load, tie-broken by the week's. Eligibility is gated first: a member is only a candidate if they actually perform the requested service.
 
 The engine computes availability in real time from these rules and exposes helpers like *nearest-slot suggestion* — when a customer asks for a taken time, the AI counter-offers the closest valid alternative instead of a dead "no".
 
-A simplified version of the core algorithm — candidate generation, the buffer rule, and nearest-slot — is in [`examples/scheduling-engine-concept.js`](examples/scheduling-engine-concept.js).
+A simplified version of the core algorithm — candidate generation, back-to-back collision, and nearest-slot — is in [`examples/scheduling-engine-concept.js`](examples/scheduling-engine-concept.js).
 
 ### 3. One AI brain, many surfaces
 

@@ -3,34 +3,33 @@
  * --------------------------------------
  * A didactic, self-contained version of the availability algorithm used in
  * PromptLab. The production engine adds team distribution, per-member
- * schedule fallbacks, absences, Google Calendar sync and realtime cache
+ * schedule fallback, absences, Google Calendar sync and realtime cache
  * invalidation — but the core ideas are all here:
  *
- *   1. Generate candidate slots from working hours
- *   2. Reject slots that collide with existing appointments
- *   3. Apply buffer time ONLY between confirmed bookings
- *      (never against blocked time or opening/closing hours)
- *   4. Suggest the nearest valid slot when the requested time is taken
+ *   1. Generate candidate start times on a fixed grid, inside working hours
+ *   2. Reject any start that collides with an occupied interval
+ *   3. Bookings are back-to-back: a service may start or end FLUSH against
+ *      another booking, a blocked period, or the opening/closing edge
+ *   4. The last bookable start depends on the duration of the requested service
+ *   5. Suggest the nearest valid slot when the requested time is taken
  *
  * Run: node scheduling-engine-concept.js
  */
 
-const SLOT_STEP = 10; // minutes between candidate start times
+const SLOT_STEP = 30; // minutes — the booking grid
 
 // --- Example business configuration -------------------------------------
 
 const config = {
   workingHours: { start: '09:00', end: '18:00' },
-  serviceDuration: 30, // minutes
-  bufferTime: 15,      // minutes, between confirmed bookings only
+  serviceDuration: 30, // minutes (comes from the requested service in production)
 };
 
-// Existing agenda for the day. Two kinds of occupancy:
-//  - 'booked'  → a confirmed appointment (buffer applies around it)
-//  - 'blocked' → owner marked time as unavailable (NO buffer applies)
+// The day's occupancy. Confirmed bookings and manually-blocked time are
+// treated identically for collision — bookings sit back-to-back, no buffer.
 const agenda = [
   { start: '10:00', end: '10:30', type: 'booked' },
-  { start: '11:20', end: '11:50', type: 'blocked' },
+  { start: '11:00', end: '12:00', type: 'blocked' }, // e.g. the lunch block
   { start: '14:00', end: '14:45', type: 'booked' },
 ];
 
@@ -46,25 +45,18 @@ const toHHMM = (min) =>
 
 // --- Core: is a given start time valid? ----------------------------------
 
-function isSlotAvailable(startMin, { workingHours, serviceDuration, bufferTime }, agenda) {
+function isSlotAvailable(startMin, { workingHours, serviceDuration }, agenda) {
   const endMin = startMin + serviceDuration;
 
-  // 1. Must fit inside working hours.
-  //    No buffer against opening or closing time: the first service may
-  //    start exactly at opening, the last may end exactly at closing.
+  // 1. Must fit inside working hours. A service may end exactly at closing,
+  //    or start exactly at opening — the edges are inclusive.
   if (startMin < toMin(workingHours.start)) return false;
   if (endMin > toMin(workingHours.end)) return false;
 
+  // 2. No overlap with any occupied interval. Touching edges is allowed:
+  //    a service may start the moment a booking or a block ends (no buffer).
   for (const item of agenda) {
-    const itemStart = toMin(item.start);
-    const itemEnd = toMin(item.end);
-
-    // 2. Buffer applies only between confirmed bookings.
-    //    A service may start or end flush against a blocked period.
-    const gap = item.type === 'booked' ? bufferTime : 0;
-
-    // 3. Overlap test with the (possibly zero) buffer applied.
-    const overlaps = startMin < itemEnd + gap && endMin > itemStart - gap;
+    const overlaps = startMin < toMin(item.end) && endMin > toMin(item.start);
     if (overlaps) return false;
   }
 
@@ -87,7 +79,7 @@ function getAvailableSlots(config, agenda) {
 // --- Nearest-slot suggestion ---------------------------------------------
 // When a customer asks for a taken time, a flat "no" kills the booking.
 // Instead, find the closest valid alternative so the AI can counter-offer:
-// "14:00 is taken — but I have 13:00 or 15:00. Does either work?"
+// "14:00 is taken — but I have 13:30 or 15:00. Does either work?"
 
 function findNearestSlot(requestedHHMM, config, agenda) {
   const requested = toMin(requestedHHMM);
@@ -116,12 +108,12 @@ function findNearestSlot(requestedHHMM, config, agenda) {
 
 console.log('Available slots:', getAvailableSlots(config, agenda).join(', '));
 
-// Buffer behaviour: 10:30–10:45 is buffered (after a booking)…
-console.log('\n10:40 valid?', isSlotAvailable(toMin('10:40'), config, agenda)); // false — inside buffer
-console.log('10:50 valid?', isSlotAvailable(toMin('10:50'), config, agenda));   // true — buffer cleared, ends flush against the 11:20 block
+// Back-to-back, no buffer: a service may start the moment another ends.
+console.log('\n10:30 valid?', isSlotAvailable(toMin('10:30'), config, agenda)); // true — flush against the 10:00–10:30 booking
+console.log('12:00 valid?', isSlotAvailable(toMin('12:00'), config, agenda));   // true — starts exactly when the block ends
 
-// …but a service may start exactly when a blocked period ends (no buffer):
-console.log('11:50 valid?', isSlotAvailable(toMin('11:50'), config, agenda));   // true
+// A start that would overlap an occupied interval is rejected:
+console.log('11:30 valid?', isSlotAvailable(toMin('11:30'), config, agenda));   // false — inside the 11:00–12:00 block
 
 // Nearest-slot suggestion for a taken time:
 console.log('\nCustomer asks for 14:00 →', findNearestSlot('14:00', config, agenda));
