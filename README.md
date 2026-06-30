@@ -14,8 +14,8 @@ Built solo, from first line of code to production: database schema, backend, fro
 
 - 🤖 AI assistant on WhatsApp — books, reschedules and cancels through natural conversation, using **native function-calling** against a live backend
 - 🗓️ Real-time scheduling engine — availability computed live from working hours, service durations and existing bookings
-- 👥 Team distribution — multiple staff with individual schedules; bookings auto-assigned to the least-loaded qualified member
-- 🌍 Multi-language — Portuguese, English, Spanish, Swedish and Armenian, detected automatically per conversation
+- 👥 Team distribution — multiple staff with individual schedules; bookings auto-assigned to the least-loaded member
+- 🌍 Multi-language — Portuguese, English, Spanish, Swedish and Armenian; the assistant replies natively in the customer's language
 - 📚 Knowledge base — each business feeds the assistant its own context (policies, FAQs, details)
 - 🔗 Integrations — WhatsApp, two-way Google Calendar sync, transactional email (Resend)
 
@@ -61,7 +61,7 @@ flowchart LR
 | Frontend | Vanilla JavaScript (ES6+), SPA with view router | Zero build step, full control, fast iteration as a solo dev |
 | Backend | Node.js on a Linux VPS (PM2, Nginx) | A persistent process is required for the WhatsApp connection — serverless can't hold it |
 | Database | Supabase (PostgreSQL, Auth, Edge Functions, Realtime) | Managed Postgres + auth + serverless functions in one, with RLS for multi-tenancy |
-| AI | DeepSeek V4 (text) + Claude (vision & premium tiers), via native function-calling | Different models for different jobs — DeepSeek for conversation, Claude Sonnet for image understanding — with automatic fallback between them |
+| AI | DeepSeek V4 (text) + Claude (vision & premium tiers), via native function-calling | Different models for different jobs — DeepSeek for conversation, Claude Sonnet for image understanding |
 | Security | Row-Level Security on every table | Tenant isolation enforced at the database layer, not in application code |
 | Ops | SSH/SCP deploys, PM2 process management, Certbot SSL | Simple, debuggable, appropriate for the scale |
 
@@ -102,8 +102,8 @@ Computing *"what times are free on Tuesday?"* sounds trivial until real business
 
 - Working hours differ per weekday, per business and per team member — resolved through a **2-level fallback**: a member's own hours, falling back to the establishment's hours when they have none. (The business owner isn't a separate level — they're simply the default first agenda, on establishment hours.)
 - Service durations vary per service, on a fixed time grid; the **last bookable start time depends on the duration of the specific service** being requested.
-- Bookings sit **back-to-back** on the grid — there is no buffer between them. Blocked time, the lunch break and per-day exceptions carve out the day, and a service may start or end **flush** against any of those edges (and against the opening/closing time).
-- In team mode a slot is "free" if *any* qualified member is free, and the booking **auto-assigns to the least-loaded** one — by that day's load, tie-broken by the week's. Eligibility is gated first: a member is only a candidate if they actually perform the requested service.
+- Bookings sit **back-to-back** on a fixed 30-minute grid. Blocked time, the lunch break and per-day exceptions carve out the day, and a service may start or end **flush** against any of those edges (and against the opening/closing time).
+- In team mode a slot is "free" if *any* member is free, and the booking **auto-assigns to the least-loaded** one — by that day's load, tie-broken by the week's.
 
 The engine computes availability in real time from these rules and exposes helpers like *nearest-slot suggestion* — when a customer asks for a taken time, the AI counter-offers the closest valid alternative instead of a dead "no".
 
@@ -117,7 +117,7 @@ The fix was structural: **a single shared prompt module** is the only source of 
 
 ### 4. Multi-language without translation tables
 
-Customers write in whatever language they want, and switch mid-conversation. The system detects the conversation language and the AI responds natively in **Portuguese, English, Spanish, Swedish or Armenian** — including correctly parsing dates and times expressed naturally (*"nästa fredag vid lunch"*, *"amanhã de manhã"*). Armenian brought a non-Latin script and its own date vocabulary through every layer — UI strings, the language detector, and the assistant itself.
+Customers write in whatever language they want, and switch mid-conversation. The assistant replies natively in the customer's language — **Portuguese, English, Spanish, Swedish or Armenian** — including correctly parsing dates and times expressed naturally (*"nästa fredag vid lunch"*, *"amanhã de manhã"*). Armenian brought a non-Latin script and its own date vocabulary through every layer — UI strings, server-side messages, and the assistant itself.
 
 Every intent pattern, server-side message and booking-flow rule is maintained across all five languages — a discipline problem as much as a technical one.
 

@@ -26,7 +26,7 @@ const config = {
 };
 
 // The day's occupancy. Confirmed bookings and manually-blocked time are
-// treated identically for collision — bookings sit back-to-back, no buffer.
+// treated identically for collision — bookings sit back-to-back on the grid.
 const agenda = [
   { start: '10:00', end: '10:30', type: 'booked' },
   { start: '11:00', end: '12:00', type: 'blocked' }, // e.g. the lunch block
@@ -54,7 +54,7 @@ function isSlotAvailable(startMin, { workingHours, serviceDuration }, agenda) {
   if (endMin > toMin(workingHours.end)) return false;
 
   // 2. No overlap with any occupied interval. Touching edges is allowed:
-  //    a service may start the moment a booking or a block ends (no buffer).
+  //    a service may start the moment a booking or a block ends.
   for (const item of agenda) {
     const overlaps = startMin < toMin(item.end) && endMin > toMin(item.start);
     if (overlaps) return false;
@@ -108,7 +108,7 @@ function findNearestSlot(requestedHHMM, config, agenda) {
 
 console.log('Available slots:', getAvailableSlots(config, agenda).join(', '));
 
-// Back-to-back, no buffer: a service may start the moment another ends.
+// Back-to-back: a service may start the moment another ends.
 console.log('\n10:30 valid?', isSlotAvailable(toMin('10:30'), config, agenda)); // true — flush against the 10:00–10:30 booking
 console.log('12:00 valid?', isSlotAvailable(toMin('12:00'), config, agenda));   // true — starts exactly when the block ends
 
